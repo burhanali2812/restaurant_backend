@@ -40,7 +40,7 @@ router.post("/signup", async (req, res) => {
       email,
       passwordHash: hashedPassword,
       restaurantId,
-      role: role || "Staff",
+      role: role || "Owner",
     });
 
     await newUser.save();
