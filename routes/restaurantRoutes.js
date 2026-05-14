@@ -7,13 +7,13 @@ const router = express.Router();
 
 // ============= CREATE RESTAURANT =============
 // Public route - Anyone can create a new restaurant
-router.post("/create", authMiddleWare, async (req, res) => {
-  if (req.user.role !== "SuperAdmin") {
-    return res.status(403).json({
-      success: false,
-      message: "Only SuperAdmin can create restaurants",
-    });
-  }
+router.post("/create", async (req, res) => {
+  // if (req.user.role !== "SuperAdmin") {
+  //   return res.status(403).json({
+  //     success: false,
+  //     message: "Only SuperAdmin can create restaurants",
+  //   });
+  // }
   try {
     const { name, address, phone } = req.body;
 
