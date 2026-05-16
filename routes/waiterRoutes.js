@@ -16,7 +16,7 @@ router.post("/signupWaiter/:restaurantId", authMiddleWare, async (req, res) => {
     const restaurantId = req.params.restaurantId;
 
     // Check if waiter already exists
-    const existingWaiter = await Waiter.findOne({ phone, restaurantId });
+    const existingWaiter = await Waiter.findOne({ phone });
     if (existingWaiter) {
       return res.status(400).json({ message: "Waiter already exists" });
     }
