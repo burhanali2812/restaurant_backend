@@ -122,4 +122,139 @@ router.post("/createOrder", authMiddleWare, async (req, res) => {
   }
 });
 
+router.get("/getOrders/:restaurantId", authMiddleWare, async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+
+    const orders = await Order.find({ restaurantId })
+      .populate({
+        path: "waiterId",
+        select: "name phone",
+      })
+      .populate({
+        path: "items.productId",
+        select: "name imageURL",
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ orders });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+});
+
+router.put("/updateOrder/:orderId", authMiddleWare, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const {
+      tableNo,
+      orderType,
+      waiterId,
+      status,
+      discount,
+    } = req.body;
+
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const normalizedOrderType = orderType
+      ? String(orderType).toLowerCase()
+      : order.orderType;
+
+    if (["dine-in", "delivery"].includes(normalizedOrderType) && !waiterId) {
+      return res.status(400).json({
+        message: "Waiter is required for dine-in and delivery orders",
+      });
+    }
+
+    const nextDiscount = discount === "" || discount == null ? order.discount : Number(discount) || 0;
+
+    order.tableNo = tableNo;
+    order.orderType = normalizedOrderType;
+    order.waiterId = ["dine-in", "delivery"].includes(normalizedOrderType)
+      ? waiterId
+      : undefined;
+    order.status = status || order.status;
+    order.discount = nextDiscount;
+    order.total = Math.max(Number(order.subtotal || 0) - nextDiscount, 0);
+
+    await order.save();
+
+    const updatedOrder = await Order.findById(orderId)
+      .populate({
+        path: "waiterId",
+        select: "name phone",
+      })
+      .populate({
+        path: "items.productId",
+        select: "name imageURL",
+      });
+
+    res.status(200).json({
+      message: "Order updated successfully",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+});
+
+router.put("/updateOrderStatus/:orderId", authMiddleWare, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    order.status = status;
+    await order.save();
+
+    res.status(200).json({
+      message: "Order status updated successfully",
+      order,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+});
+
+router.delete("/deleteOrder/:orderId", authMiddleWare, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const deletedOrder = await Order.findByIdAndDelete(orderId);
+
+    if (!deletedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.status(200).json({ message: "Order deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+});
+
 module.exports = router;
