@@ -10,6 +10,7 @@ app.use(express.json());
 // Import routes
 const userRoutes = require("./routes/userRoutes");
 const restaurantRoutes = require("./routes/restaurantRoutes");
+const waiterRoutes = require("./routes/waiterRoutes");
 
 const PORT = process.env.PORT || 3000;
 app.get("/", (req, res) => {
@@ -19,6 +20,7 @@ app.get("/", (req, res) => {
 // Use routes
 app.use("/api/users", userRoutes);
 app.use("/api/restaurants", restaurantRoutes);
+app.use("/api/waiters", waiterRoutes);
 
 const connectDB = async () => {
   try {
