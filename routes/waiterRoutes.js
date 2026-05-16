@@ -3,15 +3,17 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Waiter = require("../models/waiter");
 const authMiddleWare = require("../authMiddleWare/authMiddleWare");
+const e = require("express");
 const router = express.Router();
 
-router.post("/signupWaiter", authMiddleWare, async (req, res) => {
+router.post("/signupWaiter/:restaurantId", authMiddleWare, async (req, res) => {
   if (req.user.role !== "Owner") {
     return res.status(403).json({ message: "Access denied" });
   }
 
   try {
-    const { name, restaurantId, shift, phone, salary } = req.body;
+    const { name, shift, phone, salary } = req.body;
+    const restaurantId = req.params.restaurantId;
 
     // Check if waiter already exists
     const existingWaiter = await Waiter.findOne({ phone, restaurantId });
@@ -33,7 +35,7 @@ router.post("/signupWaiter", authMiddleWare, async (req, res) => {
     res.status(201).json({ message: "Waiter created successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: error.message || "Internal server error" });
   }
 });
 
@@ -47,7 +49,7 @@ router.get("/getWaiters/:restaurantId", authMiddleWare, async (req, res) => {
         res.json(waiters);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: error.message || "Internal server error" });
     }
 });
 
@@ -61,7 +63,7 @@ router.delete("/deleteWaiter/:waiterId", authMiddleWare, async (req, res) => {
         res.json({ message: "Waiter deleted successfully" });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: error.message ||   "Internal server error" });
     }
 });
 
@@ -80,7 +82,7 @@ router.put("/updateWaiter/:waiterId", authMiddleWare, async (req, res) => {
         res.json({ message: "Waiter updated successfully", waiter: updatedWaiter });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: error.message ||   "Internal server error" });
     }
 
 });
@@ -98,7 +100,7 @@ router.get("/getWaiter/:waiterId", authMiddleWare, async (req, res) => {
         res.json(waiter);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: error.message || "Internal server error" });
     }
 });
 
