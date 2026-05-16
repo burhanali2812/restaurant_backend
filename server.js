@@ -12,6 +12,7 @@ const userRoutes = require("./routes/userRoutes");
 const restaurantRoutes = require("./routes/restaurantRoutes");
 const waiterRoutes = require("./routes/waiterRoutes");
 const productRoutes = require("./routes/productRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 
 const PORT = process.env.PORT || 3000;
 app.get("/", (req, res) => {
@@ -23,6 +24,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/waiters", waiterRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/orders", orderRoutes);
+
 
 const connectDB = async () => {
   try {

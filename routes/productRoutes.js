@@ -84,7 +84,7 @@ router.post(
         description: description || "",
         imageURL: imageUrl,
         restaurantId,
-        basePrice: price ? Number(price) : undefined,
+        price: price ? Number(price) : undefined,
         variants: Array.isArray(parsedVariants) ? parsedVariants : [],
       });
 
@@ -163,7 +163,7 @@ router.put(
       const updateData = {
         name,
         description: description || "",
-        basePrice: price ? Number(price) : undefined,
+        price: price ? Number(price) : undefined,
       };
 
       if (typeof isAvailable !== "undefined") {

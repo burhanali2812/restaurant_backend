@@ -17,7 +17,7 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
-    basePrice: { type: Number }, // optional fallback
+    price: { type: Number }, // optional fallback
 
     variants: [variantSchema],
 
