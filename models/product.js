@@ -1,20 +1,14 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const variantSchema = new mongoose.Schema({
   name: { type: String, required: true }, // Small, Medium, Large
   price: { type: Number, required: true },
-  stock: { type: Number, default: 0 },
 });
 
 const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-
-    categoryId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
-      required: true,
-    },
+    imageURL: { type: String },
 
     restaurantId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -32,4 +26,4 @@ const productSchema = new mongoose.Schema(
 );
 
 const Product = mongoose.model("Product", productSchema);
-export default Product;
+module.exports = Product;
