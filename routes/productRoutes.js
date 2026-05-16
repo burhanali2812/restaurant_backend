@@ -29,6 +29,12 @@ const uploadToCloudinary = async (buffer, folder) => {
   });
 };
 
+const getCloudinaryPublicIdFromUrl = (url) => {
+  if (!url || !url.includes("res.cloudinary.com")) return null;
+  const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[a-zA-Z0-9]+$/);
+  return match ? match[1] : null;
+};
+
 router.post(
   "/addProduct",
   authMiddleWare,
@@ -40,6 +46,7 @@ router.post(
     try {
       const {
         name,
+        description,
         price,
         variants,
         restaurantId: bodyRestaurantId,
@@ -60,9 +67,10 @@ router.post(
           "restaurant_products",
         );
         imageUrl = result.secure_url;
-      }else{
+      } else {
         //pick a default image if no image is uploaded
-        imageUrl = "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
+        imageUrl =
+          "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
       }
 
       let parsedVariants = [];
@@ -73,6 +81,7 @@ router.post(
 
       const product = new Product({
         name,
+        description: description || "",
         imageURL: imageUrl,
         restaurantId,
         basePrice: price ? Number(price) : undefined,
@@ -114,6 +123,17 @@ router.delete("/deleteProduct/:productId", authMiddleWare, async (req, res) => {
 
   try {
     const { productId } = req.params;
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const publicId = getCloudinaryPublicIdFromUrl(product.imageURL);
+    if (publicId) {
+      await cloudinary.uploader.destroy(publicId);
+    }
+
     await Product.findByIdAndDelete(productId);
     res.json({ message: "Product deleted successfully" });
   } catch (error) {
@@ -133,10 +153,16 @@ router.put(
 
     try {
       const { productId } = req.params;
-      const { name, price, variants, isAvailable } = req.body;
+      const { name, description, price, variants, isAvailable } = req.body;
+
+      const existingProduct = await Product.findById(productId);
+      if (!existingProduct) {
+        return res.status(404).json({ message: "Product not found" });
+      }
 
       const updateData = {
         name,
+        description: description || "",
         basePrice: price ? Number(price) : undefined,
       };
 
@@ -158,6 +184,14 @@ router.put(
           "restaurant_products",
         );
         updateData.imageURL = result.secure_url;
+
+        const oldPublicId = getCloudinaryPublicIdFromUrl(
+          existingProduct.imageURL,
+        );
+        const newPublicId = getCloudinaryPublicIdFromUrl(result.secure_url);
+        if (oldPublicId && oldPublicId !== newPublicId) {
+          await cloudinary.uploader.destroy(oldPublicId);
+        }
       }
 
       const updatedProduct = await Product.findByIdAndUpdate(
@@ -165,10 +199,6 @@ router.put(
         updateData,
         { new: true },
       );
-
-      if (!updatedProduct) {
-        return res.status(404).json({ message: "Product not found" });
-      }
 
       res.json({
         message: "Product updated successfully",

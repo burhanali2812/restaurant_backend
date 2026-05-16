@@ -8,6 +8,7 @@ const variantSchema = new mongoose.Schema({
 const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    description: { type: String, default: "" },
     imageURL: { type: String },
 
     restaurantId: {
@@ -22,7 +23,7 @@ const productSchema = new mongoose.Schema(
 
     isAvailable: { type: Boolean, default: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Product = mongoose.model("Product", productSchema);
