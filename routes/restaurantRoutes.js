@@ -48,7 +48,7 @@ router.post("/create", async (req, res) => {
 
 // ============= GET RESTAURANT BY ID =============
 // Public route
-router.get("/:id", authMiddleWare, async (req, res) => {
+router.get("/getRestaurant/:id", authMiddleWare, async (req, res) => {
   if (req.user.role !== "SuperAdmin" && req.user.role !== "Owner") {
     return res.status(403).json({
       success: false,
