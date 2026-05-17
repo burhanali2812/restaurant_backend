@@ -223,7 +223,9 @@ router.get("/getRecommendedProductImages", authMiddleWare, async (req, res) => {
   try {
     const { name } = req.query;
     if (!name) {
-      return res.status(400).json({ message: "Name query parameter is required" });
+      return res
+        .status(400)
+        .json({ message: "Name query parameter is required" });
     }
     const escapedParts = name
       .trim()
