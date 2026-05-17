@@ -50,6 +50,7 @@ router.post(
         price,
         variants,
         restaurantId: bodyRestaurantId,
+        imageURL: bodyImageURL,
       } = req.body;
       const restaurantId = req.user.restaurantId || bodyRestaurantId;
 
@@ -67,6 +68,8 @@ router.post(
           "restaurant_products",
         );
         imageUrl = result.secure_url;
+      } else if (bodyImageURL) {
+        imageUrl = bodyImageURL;
       } else {
         //pick a default image if no image is uploaded
         imageUrl =
@@ -212,5 +215,33 @@ router.put(
     }
   },
 );
+
+router.get("/getRecommendedProductImages", authMiddleWare, async (req, res) => {
+  if (req.user.role !== "Owner") {
+    return res.status(403).json({ message: "Access denied" });
+  }
+  try {
+    const { name } = req.query;
+    if (!name) {
+      return res.status(400).json({ message: "Name query parameter is required" });
+    }
+    const escapedParts = name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 3)
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const regex = new RegExp(escapedParts.join("|"), "i");
+    const products = await Product.find({
+      name: { $regex: regex },
+      imageURL: { $exists: true, $ne: "" },
+    }).limit(10);
+    const imageUrls = [...new Set(products.map((product) => product.imageURL))];
+    res.json({ imageUrls });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message || "Internal server error" });
+  }
+});
 
 module.exports = router;
