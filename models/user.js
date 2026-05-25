@@ -6,12 +6,18 @@ const userSchema = new mongoose.Schema(
     restaurantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Restaurant",
-      required: true,
+      required: false,
     },
     email: { type: String, required: true, unique: true },
     passwordHash: { type: String, required: true },
     role: { type: String, default: "Owner" },
+    plans: {
+      type: String,
+      enum: ["Free", "Basic", "Advanced", "Premium"],
+      default: "Free",
+    },
   },
+
   { timestamps: true },
 );
 

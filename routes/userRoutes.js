@@ -2,9 +2,148 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
+const Restaurant = require("../models/restaurant");
+const Plan = require("../models/plan");
+const Subscription = require("../models/subscription");
 const authMiddleWare = require("../authMiddleWare/authMiddleWare");
 
 const router = express.Router();
+
+const addDays = (date, days) => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
+// ============= OWNER + RESTAURANT + PLAN SIGNUP =============
+// Public route - Creates owner user, restaurant, and monthly subscription
+router.post("/signup-owner", async (req, res) => {
+  try {
+    const {
+      username,
+      email,
+      password,
+      planId,
+      restaurantName,
+      restaurantAddress,
+      restaurantPhone,
+      restaurant,
+    } = req.body;
+
+    const resolvedRestaurantName = restaurantName || restaurant?.name;
+    const resolvedRestaurantAddress =
+      restaurantAddress || restaurant?.address;
+    const resolvedRestaurantPhone = restaurantPhone || restaurant?.phone;
+
+    if (
+      !username ||
+      !email ||
+      !password ||
+      !planId ||
+      !resolvedRestaurantName ||
+      !resolvedRestaurantAddress ||
+      !resolvedRestaurantPhone
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "username, email, password, planId, restaurantName, restaurantAddress, and restaurantPhone are required",
+      });
+    }
+
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }],
+    });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User with this email or username already exists",
+      });
+    }
+
+    const selectedPlan = await Plan.findById(planId);
+    if (!selectedPlan || !selectedPlan.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: "Selected plan is not available",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newRestaurant = await Restaurant.create({
+      name: resolvedRestaurantName,
+      address: resolvedRestaurantAddress,
+      phone: resolvedRestaurantPhone,
+      isActive: true,
+    });
+
+    const newUser = await User.create({
+      username,
+      email,
+      passwordHash: hashedPassword,
+      restaurantId: newRestaurant._id,
+      role: "Owner",
+      plans: selectedPlan.name,
+    });
+
+    const startDate = new Date();
+    const renewalDate = addDays(startDate, 30);
+
+    const subscription = await Subscription.create({
+      restaurantId: newRestaurant._id,
+      planId: selectedPlan._id,
+      status: "active",
+      billingCycle: "monthly",
+      amount: Number(selectedPlan.monthlyCharge || 0),
+      currency: selectedPlan.currency || "PKR",
+      startDate,
+      endDate: renewalDate,
+      renewalDate,
+      metadata: {
+        createdVia: "signup-owner",
+      },
+    });
+
+    newRestaurant.ownerId = newUser._id;
+    newRestaurant.currentSubscriptionId = subscription._id;
+    await newRestaurant.save();
+
+    const token = jwt.sign(
+      { userId: newUser._id, email: newUser.email, role: newUser.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    const userWithRestaurant = await User.findById(newUser._id).populate(
+      "restaurantId",
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Owner, restaurant, and subscription created successfully",
+      token,
+      user: {
+        id: userWithRestaurant._id,
+        username: userWithRestaurant.username,
+        email: userWithRestaurant.email,
+        role: userWithRestaurant.role,
+        restaurantId: userWithRestaurant.restaurantId,
+      },
+      subscription: {
+        id: subscription._id,
+        planId: selectedPlan._id,
+        planName: selectedPlan.name,
+        monthlyCharge: selectedPlan.monthlyCharge,
+        status: subscription.status,
+        renewalDate: subscription.renewalDate,
+      },
+    });
+  } catch (error) {
+    console.error("Signup Owner Error:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 
 // ============= SIGNUP =============
 // Public route - anyone can sign up
