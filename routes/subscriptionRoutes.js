@@ -2,6 +2,7 @@ const express = require("express");
 const Subscription = require("../models/subscription");
 const Restaurant = require("../models/restaurant");
 const Plan = require("../models/plan");
+const BillingTransaction = require("../models/billingTransaction");
 const authMiddleWare = require("../authMiddleWare/authMiddleWare");
 
 const router = express.Router();
@@ -16,6 +17,22 @@ const addMonths = (date, months) => {
   const next = new Date(date);
   next.setMonth(next.getMonth() + months);
   return next;
+};
+
+const generateInvoiceNo = async () => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let invoiceNo = "INV-";
+
+  for (let i = 0; i < 8; i++) {
+    invoiceNo += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  const existing = await BillingTransaction.findOne({ invoiceNo });
+  if (existing) {
+    return generateInvoiceNo();
+  }
+
+  return invoiceNo;
 };
 
 router.get("/", authMiddleWare, async (req, res) => {
@@ -112,6 +129,24 @@ router.post("/create", authMiddleWare, async (req, res) => {
       endDate: renewalDate,
       renewalDate,
       metadata: metadata && typeof metadata === "object" ? metadata : {},
+    });
+
+    await BillingTransaction.create({
+      restaurantId,
+      subscriptionId: subscription._id,
+      planId,
+      cycle: normalizedCycle === "yearly" ? "yearly" : "monthly",
+      amount: Number(plan.monthlyCharge || 0) * monthsToAdd,
+      currency: plan.currency || "PKR",
+      status: "paid",
+      invoiceNo: await generateInvoiceNo(),
+      billingDate: effectiveStartDate,
+      dueDate: renewalDate,
+      paidAt: new Date(),
+      remarks: "Subscription billing created",
+      metadata: {
+        source: "subscription-create",
+      },
     });
 
     restaurant.currentSubscriptionId = subscription._id;

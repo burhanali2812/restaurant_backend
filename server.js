@@ -15,6 +15,7 @@ const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const planRoutes = require("./routes/planRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
+const billingRoutes = require("./routes/billingRoutes");
 const Plan = require("./models/plan");
 
 const PORT = process.env.PORT || 3000;
@@ -30,6 +31,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/billing", billingRoutes);
 
 const ensureDefaultPlans = async () => {
   const count = await Plan.countDocuments();
